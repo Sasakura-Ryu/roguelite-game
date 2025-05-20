@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ミニ・ローグライト</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #222;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    #map {
+      display: grid;
+      grid-template-columns: repeat(3, 60px);
+      grid-gap: 10px;
+      margin-bottom: 20px;
+    }
+    .cell {
+      width: 60px;
+      height: 60px;
+      background: #444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      cursor: pointer;
+    }
+    #status {
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px;
+      background: #666;
+      border: none;
+      color: #fff;
+      border-radius: 6px;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="status">HP: <span id="hp">10</span> / Gold: <span id="gold">0</span></div>
+  <div id="map"></div>
+  <button onclick="resetGame()">ゲームリセット</button>
+
+  <script>
+    const mapEl = document.getElementById('map');
+    const hpEl = document.getElementById('hp');
+    const goldEl = document.getElementById('gold');
+
+    let playerPos = 4;
+    let hp = 10;
+    let gold = 0;
+    let enemies = [];
+
+    function drawMap() {
+      mapEl.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        if (i === playerPos) {
+          cell.textContent = '●';
+        } else if (enemies.includes(i)) {
+          cell.textContent = '敵';
+        } else {
+          cell.textContent = '';
+        }
+        cell.onclick = () => movePlayer(i);
+        mapEl.appendChild(cell);
+      }
+    }
+
+    function movePlayer(to) {
+      if (Math.abs(to - playerPos) === 1 || Math.abs(to - playerPos) === 3) {
+        playerPos = to;
+        if (enemies.includes(to)) {
+          fightEnemy(to);
+        }
+        drawMap();
+      }
+    }
+
+    function fightEnemy(pos) {
+      hp -= 2;
+      gold += 1;
+      enemies = enemies.filter(e => e !== pos);
+      if (hp <= 0) {
+        alert('死亡しました！');
+        resetGame();
+      }
+      updateStatus();
+    }
+
+    function updateStatus() {
+      hpEl.textContent = hp;
+      goldEl.textContent = gold;
+    }
+
+    function resetGame() {
+      hp = 10;
+      gold = 0;
+      playerPos = 4;
+      enemies = [];
+      while (enemies.length < 3) {
+        let rand = Math.floor(Math.random() * 9);
+        if (rand !== playerPos && !enemies.includes(rand)) {
+          enemies.push(rand);
+        }
+      }
+      updateStatus();
+      drawMap();
+    }
+
+    resetGame();
+  </script>
+</body>
+</html>
