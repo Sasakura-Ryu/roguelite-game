@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ミニ・ローグライト</title>
+  <title>斜め対応マッチ3</title>
   <style>
     body {
       font-family: sans-serif;
-      background: #222;
+      background: #111;
       color: #fff;
       display: flex;
       flex-direction: column;
@@ -16,109 +16,119 @@
       height: 100vh;
       margin: 0;
     }
-    #map {
+    #grid {
       display: grid;
-      grid-template-columns: repeat(3, 60px);
-      grid-gap: 10px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(6, 50px);
+      gap: 4px;
     }
     .cell {
-      width: 60px;
-      height: 60px;
-      background: #444;
+      width: 50px;
+      height: 50px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-weight: bold;
+      background: #444;
+      border-radius: 5px;
       cursor: pointer;
     }
-    #status {
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 10px;
-      background: #666;
-      border: none;
-      color: #fff;
-      border-radius: 6px;
-      margin: 5px;
-    }
+    .red { background: crimson; }
+    .blue { background: dodgerblue; }
+    .green { background: seagreen; }
+    .yellow { background: gold; color: black; }
+    .selected { outline: 3px solid white; }
   </style>
 </head>
 <body>
-  <div id="status">HP: <span id="hp">10</span> / Gold: <span id="gold">0</span></div>
-  <div id="map"></div>
-  <button onclick="resetGame()">ゲームリセット</button>
-
+  <h2>斜め対応マッチ3</h2>
+  <div id="grid"></div>
   <script>
-    const mapEl = document.getElementById('map');
-    const hpEl = document.getElementById('hp');
-    const goldEl = document.getElementById('gold');
+    const grid = document.getElementById('grid');
+    const size = 6;
+    const colors = ['red', 'blue', 'green', 'yellow'];
+    let cells = [];
+    let selected = null;
 
-    let playerPos = 4;
-    let hp = 10;
-    let gold = 0;
-    let enemies = [];
-
-    function drawMap() {
-      mapEl.innerHTML = '';
-      for (let i = 0; i < 9; i++) {
+    function createGrid() {
+      grid.innerHTML = '';
+      cells = [];
+      for (let i = 0; i < size * size; i++) {
         const cell = document.createElement('div');
         cell.className = 'cell';
-        if (i === playerPos) {
-          cell.textContent = '●';
-        } else if (enemies.includes(i)) {
-          cell.textContent = '敵';
-        } else {
-          cell.textContent = '';
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        cell.classList.add(color);
+        cell.dataset.index = i;
+        cell.onclick = () => handleClick(i);
+        grid.appendChild(cell);
+        cells.push(cell);
+      }
+    }
+
+    function handleClick(index) {
+      if (selected === null) {
+        selected = index;
+        cells[index].classList.add('selected');
+      } else {
+        if (isAdjacent(selected, index)) {
+          swap(selected, index);
+          if (!checkMatches()) {
+            // 戻す
+            swap(selected, index);
+          }
         }
-        cell.onclick = () => movePlayer(i);
-        mapEl.appendChild(cell);
+        cells[selected].classList.remove('selected');
+        selected = null;
       }
     }
 
-    function movePlayer(to) {
-      if (Math.abs(to - playerPos) === 1 || Math.abs(to - playerPos) === 3) {
-        playerPos = to;
-        if (enemies.includes(to)) {
-          fightEnemy(to);
+    function isAdjacent(a, b) {
+      const ax = a % size, ay = Math.floor(a / size);
+      const bx = b % size, by = Math.floor(b / size);
+      const dx = Math.abs(ax - bx);
+      const dy = Math.abs(ay - by);
+      return (dx === 1 && dy === 0) || (dx === 0 && dy === 1) || (dx === 1 && dy === 1); // 斜め含む
+    }
+
+    function swap(a, b) {
+      const tempClass = cells[a].className;
+      cells[a].className = cells[b].className;
+      cells[b].className = tempClass;
+      cells[a].classList.add('cell');
+      cells[b].classList.add('cell');
+    }
+
+    function checkMatches() {
+      let matched = new Set();
+      const getColor = i => cells[i]?.classList[1];
+
+      const directions = [
+        [1],              // 横
+        [size],           // 縦
+        [size + 1],       // 斜め右下
+        [size - 1],       // 斜め左下
+      ];
+
+      for (let i = 0; i < size * size; i++) {
+        for (const dir of directions) {
+          const match = [i];
+          let next = i + dir[0];
+          while (Math.floor(next / size) < size && getColor(next) === getColor(i)) {
+            match.push(next);
+            next += dir[0];
+          }
+          if (match.length >= 3) match.forEach(m => matched.add(m));
         }
-        drawMap();
       }
+
+      matched.forEach(i => {
+        const newColor = colors[Math.floor(Math.random() * colors.length)];
+        cells[i].className = `cell ${newColor}`;
+      });
+
+      return matched.size > 0;
     }
 
-    function fightEnemy(pos) {
-      hp -= 2;
-      gold += 1;
-      enemies = enemies.filter(e => e !== pos);
-      if (hp <= 0) {
-        alert('死亡しました！');
-        resetGame();
-      }
-      updateStatus();
-    }
-
-    function updateStatus() {
-      hpEl.textContent = hp;
-      goldEl.textContent = gold;
-    }
-
-    function resetGame() {
-      hp = 10;
-      gold = 0;
-      playerPos = 4;
-      enemies = [];
-      while (enemies.length < 3) {
-        let rand = Math.floor(Math.random() * 9);
-        if (rand !== playerPos && !enemies.includes(rand)) {
-          enemies.push(rand);
-        }
-      }
-      updateStatus();
-      drawMap();
-    }
-
-    resetGame();
+    createGrid();
   </script>
 </body>
 </html>
